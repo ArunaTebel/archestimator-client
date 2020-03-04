@@ -5,6 +5,7 @@ import ArchestHttp from "../modules/archest_http";
 import {BACKEND_ESTIMATOR_API_URL} from "../constants";
 import {Button, Card, Col, Form} from "react-bootstrap";
 import ArchestWidgetMultiSelect from "./ArchestWidgetMultiSelect";
+import ArchestCrudListComponent from "./lib/util/ArchestCrudListComponent";
 
 const _ = require('lodash');
 
@@ -15,6 +16,7 @@ class ArchestEditPhaseComponent extends Component {
         this.state = {
             project: {name: ''},
             phase: {},
+            phaseFeatures: [],
             resources: [],
             managers: [],
             formValues: {
@@ -45,6 +47,11 @@ class ArchestEditPhaseComponent extends Component {
                 params: {}
             },
             {
+                name: 'phaseFeatures',
+                url: `${BACKEND_ESTIMATOR_API_URL}/phases/${phaseId}/features/`,
+                params: {}
+            },
+            {
                 name: 'resources',
                 url: `${BACKEND_ESTIMATOR_API_URL}/resources/`,
                 params: {}
@@ -54,10 +61,12 @@ class ArchestEditPhaseComponent extends Component {
         ArchestHttp.BATCH_GET(requestConfigs, (responses) => {
             const phase = responses.phase.data;
             const resources = responses.resources.data.results;
+            const phaseFeatures = responses.phaseFeatures.data.results;
 
             this.setState({
                 project: phase.project,
                 phase: phase,
+                phaseFeatures: phaseFeatures,
                 resources: resources,
                 formValues: {
                     name: phase.name,
@@ -111,6 +120,27 @@ class ArchestEditPhaseComponent extends Component {
     }
 
     render() {
+
+        let phaseFeaturesListItems = _.map(this.state.phaseFeatures, (function (phaseFeature) {
+            return {id: phaseFeature.id, name: phaseFeature.name};
+        }));
+
+        let phaseFeaturesListHeaders = {
+            id: {title: '#', cellConfig: {type: 'label'}},
+            name: {title: 'Name', cellConfig: {type: 'text-input'}},
+        };
+
+        let phaseFeaturesCrudListComponent = <div/>;
+
+        if (!this.state.loading) {
+            phaseFeaturesCrudListComponent = <ArchestCrudListComponent
+                title={'Activities of ' + this.state.phase.name}
+                headers={phaseFeaturesListHeaders}
+                items={phaseFeaturesListItems}
+                rowSaveCallback={this.onPhaseFeatureSave}
+            />
+        }
+
         return (
             <ArchestAuthEnabledComponent>
                 <ArchestMainContainerComponent breadcrumbs={this.state.breadcrumbs} loading={this.state.loading}>
@@ -170,7 +200,7 @@ class ArchestEditPhaseComponent extends Component {
                                         <Form.Group controlId="archestPhaseEdit.projectManagers">
                                             <Form.Label>Project Managers</Form.Label>
                                             <ArchestWidgetMultiSelect
-                                                name={'project_managers'}
+                                                name={'project_[];managers'}
                                                 onChange={this.handleActivityFormFieldChange}
                                                 values={this.state.formValues.project_managers}
                                                 options={this.state.resources}
@@ -199,9 +229,14 @@ class ArchestEditPhaseComponent extends Component {
                             </Form>
                         </Card.Body>
                     </Card>
+                    {phaseFeaturesCrudListComponent}
                 </ArchestMainContainerComponent>
             </ArchestAuthEnabledComponent>
         );
+    }
+
+    onPhaseFeatureSave(phaseFeatureId, originalPhaseFeatureData, updatedPhaseFeatureData) {
+        console.log(phaseFeatureId, originalPhaseFeatureData, updatedPhaseFeatureData);
     }
 }
 
