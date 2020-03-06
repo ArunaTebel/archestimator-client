@@ -1,4 +1,33 @@
+@import "../../../res/archest-default-theme/variables.scss";
+
 .archest-crud-list-card {
   margin-top: 20px;
   margin-bottom: 20px;
+}
+
+#archest-crud-list-options-dropdown {
+  height: 15px;
+  padding: 0;
+  width: 20px;
+  background-color: white;
+  border-color: $info;
+}
+
+#archest-crud-list-options-dropdown::after {
+  vertical-align: 0.45rem;
+  color: $info;
+}
+
+.archest-crud-list-card-body-table-thead-tr-th {
+  font-size: small;
+  color: $info;
+}
+
+.archest-crud-list-card-body-table-thead-tr-select-options-th, .archest-crud-list-card-body-table-thead-tr-row-options-th {
+  width: 40px;
+}
+
+.archest-crud-list-save-icon {
+  color: $info;
+  cursor: pointer;
 }

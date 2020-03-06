@@ -32,6 +32,9 @@ class ArchestEditPhaseComponent extends Component {
         };
         this.handleActivityFormFieldChange = this.handleActivityFormFieldChange.bind(this);
         this.savePhaseData = this.savePhaseData.bind(this);
+        this.addNewPhaseFeature = this.addNewPhaseFeature.bind(this);
+        this.onPhaseFeatureSave = this.onPhaseFeatureSave.bind(this);
+        this.deleteSelectedItemsCallback = this.deleteSelectedItemsCallback.bind(this);
     }
 
     componentDidMount() {
@@ -119,14 +122,34 @@ class ArchestEditPhaseComponent extends Component {
         );
     }
 
-    render() {
+    deleteSelectedItemsCallback(featurePhaseIds) {
 
-        let phaseFeaturesListItems = _.map(this.state.phaseFeatures, (function (phaseFeature) {
-            return {id: phaseFeature.id, name: phaseFeature.name};
-        }));
+        ArchestHttp.PATCH(`${BACKEND_ESTIMATOR_API_URL}/features/batch_delete_features/`, {featureIds: featurePhaseIds}).then((response) => {
+            ArchestHttp.BATCH_GET([{
+                name: 'phaseFeatures',
+                url: `${BACKEND_ESTIMATOR_API_URL}/phases/${this.state.phase.id}/features/`,
+                params: {}
+            }], (responses) => {
+                this.setState({
+                    phaseFeatures: responses.phaseFeatures.data.results
+                });
+            });
+        }).catch(function (error) {
+            console.log(error);
+        });
+
+    }
+
+    addNewPhaseFeature() {
+        const newState = Object.assign({}, this.state);
+        newState.phaseFeatures.push({id: '', name: ''});
+        this.setState(newState);
+    }
+
+    render() {
+        let phaseFeaturesListItems = Object.assign({}, ...this.state.phaseFeatures.map(phaseFeature => ({[phaseFeature.id]: phaseFeature})));
 
         let phaseFeaturesListHeaders = {
-            id: {title: '#', cellConfig: {type: 'label'}},
             name: {title: 'Name', cellConfig: {type: 'text-input'}},
         };
 
@@ -138,6 +161,8 @@ class ArchestEditPhaseComponent extends Component {
                 headers={phaseFeaturesListHeaders}
                 items={phaseFeaturesListItems}
                 rowSaveCallback={this.onPhaseFeatureSave}
+                addNewItemCallback={this.addNewPhaseFeature}
+                deleteSelectedItemsCallback={this.deleteSelectedItemsCallback}
             />
         }
 
@@ -235,8 +260,43 @@ class ArchestEditPhaseComponent extends Component {
         );
     }
 
-    onPhaseFeatureSave(phaseFeatureId, originalPhaseFeatureData, updatedPhaseFeatureData) {
-        console.log(phaseFeatureId, originalPhaseFeatureData, updatedPhaseFeatureData);
+    onPhaseFeatureSave(phaseFeatureId, updatedPhaseFeatureData, originalPhaseFeatureData) {
+
+        const newState = Object.assign({}, this.state);
+
+        if (phaseFeatureId) {
+
+            ArchestHttp.PATCH(`${BACKEND_ESTIMATOR_API_URL}/features/${phaseFeatureId}/`, updatedPhaseFeatureData).then((response) => {
+
+                for (let i = 0; i < newState.phaseFeatures.length; i++) {
+                    if (newState.phaseFeatures[i].id === phaseFeatureId) {
+                        newState.phaseFeatures[i].name = updatedPhaseFeatureData.name;
+                        break;
+                    }
+                }
+                this.setState(newState);
+
+            }).catch((error) => {
+                console.log(error);
+            });
+
+        } else {
+            updatedPhaseFeatureData.phase_id = this.state.phase.id;
+
+            ArchestHttp.POST(`${BACKEND_ESTIMATOR_API_URL}/features/`, updatedPhaseFeatureData).then((response) => {
+
+                for (let i = 0; i < newState.phaseFeatures.length; i++) {
+                    if (newState.phaseFeatures[i].id === '') {
+                        newState.phaseFeatures[i] = response.data;
+                        break;
+                    }
+                }
+                this.setState(newState);
+
+            }).catch((error) => {
+                console.log(error);
+            });
+        }
     }
 }
 
